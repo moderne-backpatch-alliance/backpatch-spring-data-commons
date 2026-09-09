@@ -19,6 +19,8 @@ import static org.assertj.core.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 
+import org.springframework.test.util.ReflectionTestUtils;
+
 import org.springframework.data.classloadersupport.HidingClassLoader;
 import org.springframework.data.mapping.Alias;
 import org.springframework.data.util.ClassTypeInformation;
@@ -33,6 +35,33 @@ import org.springframework.data.util.TypeInformation;
 class SimpleTypeInformationMapperUnitTests {
 
 	SimpleTypeInformationMapper mapper = new SimpleTypeInformationMapper();
+
+	@Test // CVE-2026-41716
+	void unresolvableAliasesDoNotGrowTheCacheWithoutBound() {
+
+		// loadClass() returns Optional.empty() for an alias it cannot load rather than throwing,
+		// so before the fix every distinct alias string -- including one an attacker supplies as a
+		// stored type hint -- was retained in the cache permanently.
+		for (int i = 0; i < 5000; i++) {
+			assertThat(mapper.resolveTypeFrom(Alias.of("com.example.NotAClass" + i))).isNull();
+		}
+
+		Object cache = ReflectionTestUtils.getField(mapper, "cache");
+		Integer size = ReflectionTestUtils.invokeMethod(cache, "size");
+
+		assertThat(size).as("cache entries retained from 5000 unresolvable aliases").isLessThanOrEqualTo(1024);
+	}
+
+	@Test // CVE-2026-41716
+	void resolvableAliasesAreStillResolvedAfterTheCacheIsFull() {
+
+		for (int i = 0; i < 5000; i++) {
+			mapper.resolveTypeFrom(Alias.of("com.example.NotAClass" + i));
+		}
+
+		assertThat(mapper.resolveTypeFrom(Alias.of("java.lang.String")))
+				.isEqualTo(ClassTypeInformation.from(String.class));
+	}
 
 	@Test
 	void resolvesTypeByLoadingClass() {
