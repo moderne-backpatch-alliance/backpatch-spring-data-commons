@@ -22,8 +22,11 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.SpringProperties;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.web.ProjectingJackson2HttpMessageConverterUnitTests.SampleInterface;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.ServletWebRequest;
 
 /**
  * Unit tests for {@link ProxyingHandlerMethodArgumentResolver}.
@@ -73,6 +76,40 @@ public class ProxyingHandlerMethodArgumentResolverUnitTests {
 		assertThat(resolver.supportsParameter(parameter)).isFalse();
 	}
 
+	@Test // GH-3495, test written by us
+	void capsCollectionGrowthFromRequestParameters() throws Exception {
+		assertThat(bindItems(resolver)).isNullOrEmpty();
+	}
+
+	@Test // GH-3495, test written by us
+	void collectionLimitCanBeOverridden() throws Exception {
+
+		SpringProperties.setProperty("spring.data.web.projection.collection-limit", "3000");
+
+		try {
+			assertThat(bindItems(new ProxyingHandlerMethodArgumentResolver(() -> new DefaultConversionService(), true)))
+					.hasSize(2001);
+		} finally {
+			SpringProperties.setProperty("spring.data.web.projection.collection-limit", null);
+		}
+	}
+
+	private static List<String> bindItems(ProxyingHandlerMethodArgumentResolver resolver) throws Exception {
+
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.addParameter("items[2000]", "value");
+
+		MethodParameter parameter = new MethodParameter(Controller.class.getMethod("with", ItemsPayload.class), 0);
+
+		return ((ItemsPayload) resolver.createAttribute("payload", parameter, null, new ServletWebRequest(request)))
+				.getItems();
+	}
+
+	@ProjectedPayload
+	interface ItemsPayload {
+		List<String> getItems();
+	}
+
 	@ProjectedPayload
 	interface AnnotatedInterface {}
 
@@ -81,6 +118,8 @@ public class ProxyingHandlerMethodArgumentResolverUnitTests {
 	interface Controller {
 
 		void with(AnnotatedInterface param);
+
+		void with(ItemsPayload param);
 
 		void with(UnannotatedInterface param);
 
