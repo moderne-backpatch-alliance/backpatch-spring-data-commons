@@ -1,6 +1,6 @@
 schema: osera-patch-evidence/0.1.0
 producer: moderne
-release: 2.7.18.1-backpatch-00009
+release: 2.7.18.1-backpatch-00010
 baseline: v2.7.18+backpatch.baseline
 fixes:
   - cve: CVE-2026-41717
@@ -66,12 +66,20 @@ fixes:
     basis: adapted
     artifacts:
       - org.springframework.data:spring-data-commons
-    note: New in this release; ported onto 2.7.18; fixed at 2.7.18.1-backpatch-00009 (backpatch-spring-data-commons@39f2e2b).
+    note: Carried from 2.7.18.1-backpatch-00009; ported onto 2.7.18; fixed at 2.7.18.1-backpatch-00009 (backpatch-spring-data-commons@39f2e2b).
+  - cve: CVE-2026-41721
+    upstream_fix_url: https://github.com/spring-projects/spring-data-commons/commit/e33b68517cf4e207a36bb3d520a93b3d10842bd4
+    advisory_url: https://nvd.nist.gov/vuln/detail/CVE-2026-41721
+    patch_commit_url: https://github.com/moderne-backpatch-alliance/backpatch-spring-data-commons/commit/d747725
+    basis: adapted
+    artifacts:
+      - org.springframework.data:spring-data-commons
+    note: "New in this release; ported onto 2.7.18; fixed at 2.7.18.1-backpatch-00010 (backpatch-spring-data-commons@d747725). Upstream's SimpleEvaluationContext.Builder.withAssignmentDisabled() line is left out: Spring 5.3.31, which this line builds against, does not have it, and the 1024 collection cap does not depend on it."
 tests:
-  commit: 39f2e2b9fd93d255ae15cb300af80a1fca0feb49
+  commit: d747725a2c2fb4ee295e9bbf9932821f3b684734
   command: mvn -B -T1 -Dossindex.skip=true -Dmaven.test.failure.ignore=true clean test
   runtime: openjdk version 1.8.0_382, Apache Maven 3.9.16
-  report: spring-data-commons-2.7.18.1-backpatch-00009-tests.zip
-  report_sha256: f675a378b4fec07781c4fcde14d5c68b011791cf8dbd642cdbe60982bd3c4f92
+  report: spring-data-commons-2.7.18.1-backpatch-00010-tests.zip
+  report_sha256: e6c62ece8d0020f065eb45ca81c9f70771151046963aadcfb7a25603cb7ea98a
   result: pass
-  note: 3328 tests at the patch commit, 3 of them skipped by the suite, 0 failed, 0 errors.
+  note: 3333 tests at the patch commit, 3 of them skipped by the suite, 0 failed, 0 errors.
